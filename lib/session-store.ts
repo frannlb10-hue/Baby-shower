@@ -1,100 +1,66 @@
-// Almacén de sesiones en memoria
-// Las sesiones se pierden al reiniciar el servidor (comportamiento intencional por seguridad)
+// Validación de sesiones stateless via HMAC
+// Compatible con entornos serverless (Vercel) donde las lambdas no comparten memoria
 
-interface Session {
-  token: string
-  createdAt: number
-  expiresAt: number
+import crypto from "crypto"
+
+const SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 horas
+
+function getSecret(): string {
+  return process.env.SESSION_SECRET || "insecure-default-secret"
 }
 
-// Mapa de sesiones activas: token -> Session
-const sessions = new Map<string, Session>()
-
-// Duración de sesión: 24 horas en milisegundos
-const SESSION_DURATION = 24 * 60 * 60 * 1000
-
 /**
- * Crea una nueva sesión y guarda el token
+ * Crea un token de sesión auto-validable (HMAC-signed).
+ * Formato: `${expiresAt}.${hmac_sha256(SESSION_SECRET, expiresAt)}`
+ * No requiere almacenamiento — el token se verifica criptográficamente.
  */
-export function createSession(token: string): Session {
-  const now = Date.now()
-  const session: Session = {
-    token,
-    createdAt: now,
-    expiresAt: now + SESSION_DURATION,
-  }
-
-  sessions.set(token, session)
-  console.log(`[Session] Nueva sesión creada. Total activas: ${sessions.size}`)
-
-  // Limpiar sesiones expiradas cada vez que se crea una nueva
-  cleanExpiredSessions()
-
-  return session
+export function createSession(_token: string): void {
+  // No-op: los tokens HMAC son auto-validables, no necesitan almacenamiento
 }
 
 /**
- * Verifica si un token corresponde a una sesión válida
+ * Verifica un token de sesión HMAC.
+ * Comprueba firma y expiración sin acceder a estado compartido.
  */
 export function validateSession(token: string): boolean {
-  if (!token || token.length !== 64) {
+  try {
+    const dotIdx = token.indexOf(".")
+    if (dotIdx === -1) return false
+
+    const expiresAtStr = token.slice(0, dotIdx)
+    const signature = token.slice(dotIdx + 1)
+
+    const expiresAt = parseInt(expiresAtStr, 10)
+    if (isNaN(expiresAt) || Date.now() > expiresAt) {
+      console.log("[Session] Token expirado o formato inválido")
+      return false
+    }
+
+    const expected = crypto
+      .createHmac("sha256", getSecret())
+      .update(expiresAtStr)
+      .digest("hex")
+
+    // Comparación en tiempo constante para evitar timing attacks
+    const sigBuffer = Buffer.from(signature.padEnd(64, "0").slice(0, 64), "hex")
+    const expBuffer = Buffer.from(expected, "hex")
+
+    if (sigBuffer.length !== expBuffer.length) return false
+    return crypto.timingSafeEqual(sigBuffer, expBuffer)
+  } catch (err) {
+    console.error("[Session] Error validando token:", err)
     return false
   }
+}
 
-  const session = sessions.get(token)
-
-  if (!session) {
-    console.log(`[Session] Token no encontrado en el almacén`)
-    return false
-  }
-
-  // Verificar si la sesión expiró
-  if (Date.now() > session.expiresAt) {
-    console.log(`[Session] Sesión expirada, eliminando`)
-    sessions.delete(token)
-    return false
-  }
-
+/**
+ * "Invalida" una sesión. Con tokens HMAC stateless el logout
+ * funciona limpiando el token en el cliente (localStorage + cookie).
+ */
+export function invalidateSession(_token: string): boolean {
   return true
 }
 
-/**
- * Invalida/elimina una sesión
- */
-export function invalidateSession(token: string): boolean {
-  const existed = sessions.has(token)
-  sessions.delete(token)
-
-  if (existed) {
-    console.log(`[Session] Sesión invalidada. Total activas: ${sessions.size}`)
-  }
-
-  return existed
-}
-
-/**
- * Limpia sesiones expiradas del almacén
- */
-function cleanExpiredSessions(): void {
-  const now = Date.now()
-  let cleaned = 0
-
-  for (const [token, session] of sessions.entries()) {
-    if (now > session.expiresAt) {
-      sessions.delete(token)
-      cleaned++
-    }
-  }
-
-  if (cleaned > 0) {
-    console.log(`[Session] Limpiadas ${cleaned} sesiones expiradas`)
-  }
-}
-
-/**
- * Obtiene el número de sesiones activas (para debugging)
- */
 export function getActiveSessionCount(): number {
-  cleanExpiredSessions()
-  return sessions.size
+  return 0
 }

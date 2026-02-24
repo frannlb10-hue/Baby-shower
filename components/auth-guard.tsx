@@ -30,7 +30,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     // Verificar si ya hay un token válido
     const token = localStorage.getItem("adminToken")
-    if (token && token.length === 64) {
+    if (token && token.includes(".") && token.length > 64) {
       setIsAuthenticated(true)
     }
     setIsLoading(false)

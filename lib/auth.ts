@@ -25,7 +25,13 @@ export function verifyPassword(password: string, hash: string, salt: string): bo
 }
 
 export function generateSessionToken(): string {
-  return crypto.randomBytes(32).toString("hex")
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000
+  const secret = process.env.SESSION_SECRET || "insecure-default-secret"
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(String(expiresAt))
+    .digest("hex")
+  return `${expiresAt}.${signature}`
 }
 
 export function isAuthenticated(request: Request): boolean {
@@ -51,12 +57,7 @@ export function isAuthenticated(request: Request): boolean {
 }
 
 function isValidSessionToken(token: string): boolean {
-  // Verificar formato básico
-  if (!token || token.length !== 64 || !/^[a-f0-9]+$/.test(token)) {
-    return false
-  }
-
-  // Verificar que el token existe en el almacén de sesiones
+  if (!token || !token.includes(".")) return false
   return validateSession(token)
 }
 

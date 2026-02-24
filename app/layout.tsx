@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Nunito } from "next/font/google"
 import "./globals.css"
+import { Toaster } from "@/components/ui/toaster"
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -22,7 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={nunito.variable}>
-      <body className="font-nunito">{children}</body>
+      <body className="font-nunito">
+        {children}
+        <Toaster />
+      </body>
     </html>
   )
 }

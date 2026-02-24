@@ -1,195 +1,95 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
+import { getGiftById, updateGift, deleteGift } from "@/lib/supabase"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  console.log("[PUT /api/gifts/:id] called for id:", params.id)
+
+  const authError = requireAuth(request)
+  if (authError) {
+    console.warn("[PUT /api/gifts/:id] Auth failed — returning 401")
+    return authError
+  }
+
+  let body: Record<string, unknown>
   try {
-    console.log("PUT /api/gifts/[id] called for id:", params.id)
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Cuerpo de solicitud inválido" }, { status: 400 })
+  }
 
-    // Verificar autenticación
-    const authError = requireAuth(request)
-    if (authError) return authError
+  const { name, description, price, external_link, image_url } = body as Record<string, string>
 
-    let body
-    try {
-      body = await request.json()
-    } catch (parseError) {
-      console.error("Error parsing request body:", parseError)
-      return NextResponse.json(
-        {
-          error: "Datos inválidos",
-          message: "El cuerpo de la solicitud no es JSON válido",
-        },
-        { status: 400 },
-      )
+  if (!name || !String(name).trim()) {
+    return NextResponse.json({ error: "El nombre del regalo es requerido" }, { status: 400 })
+  }
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) {
+    console.error("[PUT /api/gifts/:id] SUPABASE_SERVICE_ROLE_KEY no configurada")
+    return NextResponse.json(
+      { error: "Configuración incompleta", message: "SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor" },
+      { status: 500 }
+    )
+  }
+
+  try {
+    const existing = await getGiftById(params.id)
+    if (!existing) {
+      return NextResponse.json({ error: "Regalo no encontrado" }, { status: 404 })
     }
 
-    const { name, description, price, external_link, image_url } = body
-    const giftId = params.id
-
-    console.log("Update data received:", {
-      name,
-      description,
-      price,
-      external_link,
-      image_url: image_url ? `base64 data (${image_url.length} chars)` : null,
+    const updated = await updateGift(params.id, {
+      name: String(name).trim(),
+      description: description ? String(description).trim() || null : null,
+      price: price ? parseFloat(String(price)) : null,
+      external_link: external_link ? String(external_link).trim() || null : null,
+      image_url: image_url ? String(image_url).trim() || existing.image_url : existing.image_url,
     })
 
-    if (!name || !name.trim()) {
-      return NextResponse.json(
-        {
-          error: "Datos requeridos",
-          message: "El nombre del regalo es requerido",
-        },
-        { status: 400 },
-      )
-    }
-
-    // Verificar variables de entorno
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn("Variables de entorno de Supabase no configuradas, simulando actualización")
-
-      // Simular actualización exitosa
-      const updatedGift = {
-        id: giftId,
-        name: name.trim(),
-        description: description?.trim() || null,
-        price: price ? Number.parseFloat(price) : null,
-        external_link: external_link?.trim() || null,
-        image_url: image_url || null,
-        reserved: false,
-        reserved_by: null,
-        reserved_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-
-      console.log("Simulated update successful")
-      return NextResponse.json(updatedGift)
-    }
-
-    try {
-      const { getGiftById, updateGift } = await import("@/lib/supabase")
-
-      // Verificar que el regalo existe
-      const gift = await getGiftById(giftId)
-      if (!gift) {
-        return NextResponse.json(
-          {
-            error: "Regalo no encontrado",
-            message: `No se encontró un regalo con ID: ${giftId}`,
-          },
-          { status: 404 },
-        )
-      }
-
-      // Preparar datos de actualización
-      const updateData = {
-        name: name.trim(),
-        description: description?.trim() || null,
-        price: price ? Number.parseFloat(price) : null,
-        external_link: external_link?.trim() || null,
-        image_url: image_url || gift.image_url, // Mantener imagen existente si no hay nueva
-      }
-
-      console.log("Updating gift with data:", {
-        ...updateData,
-        image_url: updateData.image_url ? `base64 data (${updateData.image_url.length} chars)` : null,
-      })
-
-      const updatedGift = await updateGift(giftId, updateData)
-
-      console.log("Updated gift successfully:", updatedGift.name)
-      return NextResponse.json(updatedGift)
-    } catch (supabaseError) {
-      console.error("Error updating gift in Supabase:", supabaseError)
-      return NextResponse.json(
-        {
-          error: "Error de base de datos",
-          message: "Error al actualizar el regalo en la base de datos",
-          details: supabaseError instanceof Error ? supabaseError.message : "Error desconocido",
-        },
-        { status: 500 },
-      )
-    }
+    console.log("[PUT /api/gifts/:id] Updated successfully:", updated.name)
+    return NextResponse.json(updated)
   } catch (error) {
-    console.error("Error in PUT /api/gifts/[id]:", error)
+    console.error("[PUT /api/gifts/:id] Supabase error:", error)
     return NextResponse.json(
-      {
-        error: "Error interno",
-        message: "Error interno del servidor al actualizar el regalo",
-        details: error instanceof Error ? error.message : "Error desconocido",
-      },
-      { status: 500 },
+      { error: "Error de base de datos", message: error instanceof Error ? error.message : "Error desconocido" },
+      { status: 500 }
     )
   }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  try {
-    console.log("DELETE /api/gifts/[id] called for id:", params.id)
+  console.log("[DELETE /api/gifts/:id] called for id:", params.id)
 
-    // Verificar autenticación
-    const authError = requireAuth(request)
-    if (authError) return authError
+  const authError = requireAuth(request)
+  if (authError) {
+    console.warn("[DELETE /api/gifts/:id] Auth failed — returning 401")
+    return authError
+  }
 
-    const giftId = params.id
-
-    // Verificar variables de entorno
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn("Variables de entorno de Supabase no configuradas, simulando eliminación")
-      return NextResponse.json({
-        success: true,
-        message: "Regalo eliminado correctamente (modo demostración)",
-      })
-    }
-
-    try {
-      const { getGiftById, deleteGift } = await import("@/lib/supabase")
-
-      const gift = await getGiftById(giftId)
-      if (!gift) {
-        return NextResponse.json(
-          {
-            error: "Regalo no encontrado",
-            message: `No se encontró un regalo con ID: ${giftId}`,
-          },
-          { status: 404 },
-        )
-      }
-
-      await deleteGift(giftId)
-      console.log("Deleted gift:", gift.name)
-
-      return NextResponse.json({
-        success: true,
-        message: "Regalo eliminado correctamente",
-      })
-    } catch (supabaseError) {
-      console.error("Error deleting gift in Supabase:", supabaseError)
-      return NextResponse.json(
-        {
-          error: "Error de base de datos",
-          message: "Error al eliminar el regalo de la base de datos",
-          details: supabaseError instanceof Error ? supabaseError.message : "Error desconocido",
-        },
-        { status: 500 },
-      )
-    }
-  } catch (error) {
-    console.error("Error in DELETE /api/gifts/[id]:", error)
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) {
+    console.error("[DELETE /api/gifts/:id] SUPABASE_SERVICE_ROLE_KEY no configurada")
     return NextResponse.json(
-      {
-        error: "Error interno",
-        message: "Error interno del servidor al eliminar el regalo",
-        details: error instanceof Error ? error.message : "Error desconocido",
-      },
-      { status: 500 },
+      { error: "Configuración incompleta", message: "SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor" },
+      { status: 500 }
+    )
+  }
+
+  try {
+    const existing = await getGiftById(params.id)
+    if (!existing) {
+      return NextResponse.json({ error: "Regalo no encontrado" }, { status: 404 })
+    }
+
+    await deleteGift(params.id)
+    console.log("[DELETE /api/gifts/:id] Deleted:", existing.name)
+    return NextResponse.json({ success: true, message: "Regalo eliminado correctamente" })
+  } catch (error) {
+    console.error("[DELETE /api/gifts/:id] Supabase error:", error)
+    return NextResponse.json(
+      { error: "Error de base de datos", message: error instanceof Error ? error.message : "Error desconocido" },
+      { status: 500 }
     )
   }
 }
