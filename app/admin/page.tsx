@@ -1,112 +1,144 @@
 "use client"
 
 import { AuthGuard } from "@/components/auth-guard"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import {
-  Settings,
-  Save,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Baby,
+  Plus,
+  Pencil,
+  Trash2,
+  Download,
   RefreshCw,
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Bug,
-  FileJson,
-  HardDrive,
+  Users,
+  Settings,
+  Gift as GiftIcon,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { useSettings, invalidateSettingsCache } from "@/lib/settings"
+import type { Gift } from "@/types/gift"
 
-function SettingsDebugContent() {
-  const { settings: loadedSettings } = useSettings()
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [settingsJson, setSettingsJson] = useState("")
+function AdminContent() {
+  const [gifts, setGifts] = useState<Gift[]>([])
+  const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+
+  // Add/Edit dialog
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingGift, setEditingGift] = useState<Gift | null>(null)
   const [saving, setSaving] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    external_link: "",
+    image_url: "",
+  })
+
+  // Delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingGift, setDeletingGift] = useState<Gift | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   const { toast } = useToast()
 
   useEffect(() => {
-    loadDebugInfo()
-    setSettingsJson(JSON.stringify(loadedSettings, null, 2))
-  }, [loadedSettings])
+    fetchGifts()
+  }, [])
 
-  const loadDebugInfo = async () => {
+  const getToken = () => localStorage.getItem("adminToken") || ""
+
+  const fetchGifts = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem("adminToken")
-
-      const response = await fetch("/api/settings/debug", {
-        headers: {
-          Authorization: `Bearer ${token || ""}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
+      const response = await fetch("/api/gifts")
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
-      setDebugInfo(data.debug)
+      if (Array.isArray(data)) setGifts(data)
     } catch (error) {
-      console.error("Error loading debug info:", error)
-      toast({
-        title: "Error",
-        description: "No se pudo cargar la información de depuración",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "No se pudieron cargar los regalos", variant: "destructive" })
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSaveManual = async () => {
+  const openAddDialog = () => {
+    setEditingGift(null)
+    setFormData({ name: "", description: "", price: "", external_link: "", image_url: "" })
+    setDialogOpen(true)
+  }
+
+  const openEditDialog = (gift: Gift) => {
+    setEditingGift(gift)
+    setFormData({
+      name: gift.name,
+      description: gift.description || "",
+      price: gift.price?.toString() || "",
+      external_link: gift.external_link || "",
+      image_url: gift.image_url || "",
+    })
+    setDialogOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast({ title: "Campo requerido", description: "El nombre del regalo es obligatorio", variant: "destructive" })
+      return
+    }
     try {
       setSaving(true)
-
-      let settingsObj
-      try {
-        settingsObj = JSON.parse(settingsJson)
-      } catch (err) {
-        toast({
-          title: "Error de formato",
-          description: "El JSON no es válido",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const token = localStorage.getItem("adminToken")
-      const response = await fetch("/api/settings/debug", {
-        method: "POST",
+      const url = editingGift ? `/api/gifts/${editingGift.id}` : "/api/gifts"
+      const method = editingGift ? "PUT" : "POST"
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
+          Authorization: `Bearer ${getToken()}`,
         },
-        body: settingsJson,
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          description: formData.description.trim() || null,
+          price: formData.price ? parseFloat(formData.price) : null,
+          external_link: formData.external_link.trim() || null,
+          image_url: formData.image_url.trim() || null,
+        }),
       })
-
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const err = await response.json()
+        throw new Error(err.error || `HTTP ${response.status}`)
       }
-
-      invalidateSettingsCache()
       toast({
-        title: "Configuraciones guardadas",
-        description: "Las configuraciones se han guardado manualmente",
+        title: editingGift ? "Regalo actualizado" : "Regalo agregado",
+        description: editingGift ? "Los cambios se guardaron correctamente" : "El regalo fue agregado a la lista",
       })
-
-      // Recargar información de depuración
-      await loadDebugInfo()
+      setDialogOpen(false)
+      await fetchGifts()
     } catch (error) {
-      console.error("Error saving settings manually:", error)
       toast({
         title: "Error",
-        description: "No se pudieron guardar las configuraciones",
+        description: error instanceof Error ? error.message : "No se pudo guardar el regalo",
         variant: "destructive",
       })
     } finally {
@@ -114,275 +146,320 @@ function SettingsDebugContent() {
     }
   }
 
+  const openDeleteDialog = (gift: Gift) => {
+    setDeletingGift(gift)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!deletingGift) return
+    try {
+      setDeleting(true)
+      const response = await fetch(`/api/gifts/${deletingGift.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || `HTTP ${response.status}`)
+      }
+      toast({ title: "Regalo eliminado", description: `"${deletingGift.name}" fue eliminado correctamente` })
+      setDeleteDialogOpen(false)
+      setDeletingGift(null)
+      await fetchGifts()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo eliminar el regalo",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      setExporting(true)
+      const response = await fetch("/api/gifts/export", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `lista-regalos-${new Date().toISOString().split("T")[0]}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast({ title: "Exportado", description: "La lista se descargó correctamente" })
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo exportar la lista", variant: "destructive" })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const available = gifts.filter((g) => !g.reserved).length
+  const reserved = gifts.filter((g) => g.reserved).length
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <Button variant="outline" size="sm" onClick={() => window.history.back()} className="mr-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            <Baby className="h-8 w-8 text-pink-500" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-                <Bug className="h-8 w-8 mr-3 text-blue-500" />
-                Depuración de Configuraciones
-              </h1>
-              <p className="text-gray-600">Herramientas para diagnosticar problemas con las configuraciones</p>
+              <h1 className="text-2xl font-bold text-gray-800">Panel de Administración</h1>
+              <p className="text-sm text-gray-500">Gestión de lista de regalos</p>
             </div>
           </div>
-
-          <Button onClick={loadDebugInfo} disabled={loading} variant="outline">
-            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {loading ? "Cargando..." : "Actualizar"}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileJson className="h-5 w-5 mr-2" />
-                  Editor Manual de Configuraciones
-                </CardTitle>
-                <CardDescription>Edita directamente el JSON de configuraciones y guárdalo manualmente</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Textarea
-                  value={settingsJson}
-                  onChange={(e) => setSettingsJson(e.target.value)}
-                  rows={15}
-                  className="font-mono text-sm"
-                />
-                <Button onClick={handleSaveManual} disabled={saving} className="bg-blue-500 hover:bg-blue-600">
-                  {saving ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar Manualmente
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {debugInfo && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <HardDrive className="h-5 w-5 mr-2" />
-                    Información del Sistema de Archivos
-                  </CardTitle>
-                  <CardDescription>Diagnóstico del sistema de archivos para guardar configuraciones</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Directorio de trabajo:</span>
-                      <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                        {debugInfo.fileSystem.cwd}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Archivo de configuraciones:</span>
-                      <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                        {debugInfo.fileSystem.settingsFile}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Archivo existe:</span>
-                      {debugInfo.fileSystem.fileExists ? (
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Sí
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          No
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Permisos de escritura:</span>
-                      {debugInfo.fileSystem.canWriteToSettingsDir ? (
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Sí
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-red-50 text-red-700">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          No
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Directorio temporal:</span>
-                      {debugInfo.fileSystem.tmpDirExists ? (
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Existe
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          No existe
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Escritura en directorio temporal:</span>
-                      {debugInfo.fileSystem.canWriteToTmp ? (
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Sí
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-red-50 text-red-700">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          No
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium">Variables de entorno:</h3>
-                    <div className="bg-gray-50 p-3 rounded text-sm">
-                      <div>
-                        <strong>NODE_ENV:</strong> {debugInfo.env.NODE_ENV}
-                      </div>
-                      <div>
-                        <strong>VERCEL_ENV:</strong> {debugInfo.env.VERCEL_ENV || "No definido"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {debugInfo.fileError && (
-                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <XCircle className="h-4 w-4 text-red-600" />
-                        <h4 className="font-medium text-red-800">Error al leer el archivo:</h4>
-                      </div>
-                      <p className="text-sm text-red-700">{debugInfo.fileError}</p>
-                    </div>
-                  )}
-
-                  {!debugInfo.fileSystem.canWriteToSettingsDir && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                        <h4 className="font-medium text-amber-800">Problema detectado:</h4>
-                      </div>
-                      <p className="text-sm text-amber-700 mb-2">
-                        No hay permisos de escritura en el directorio de configuraciones. Esto puede impedir que se
-                        guarden los cambios.
-                      </p>
-                      <p className="text-sm text-amber-700">
-                        <strong>Solución:</strong> Usa el editor manual para guardar las configuraciones o utiliza el
-                        almacenamiento en localStorage.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuraciones Actuales</CardTitle>
-                <CardDescription>Configuraciones cargadas en la aplicación</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-gray-50 p-3 rounded overflow-auto max-h-96">
-                  <pre className="text-xs text-gray-800">{JSON.stringify(loadedSettings, null, 2)}</pre>
-                </div>
-              </CardContent>
-            </Card>
-
-            {debugInfo && debugInfo.fileContents && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuraciones en Archivo</CardTitle>
-                  <CardDescription>Contenido del archivo settings.json</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-gray-50 p-3 rounded overflow-auto max-h-96">
-                    <pre className="text-xs text-gray-800">{JSON.stringify(debugInfo.fileContents, null, 2)}</pre>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Acciones</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    invalidateSettingsCache()
-                    window.location.reload()
-                  }}
-                  className="w-full justify-start"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Recargar configuraciones
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    localStorage.removeItem("appSettings")
-                    toast({
-                      title: "Cache limpiado",
-                      description: "Se ha eliminado la caché de configuraciones",
-                    })
-                  }}
-                  className="w-full justify-start"
-                >
-                  <Bug className="h-4 w-4 mr-2" />
-                  Limpiar caché local
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => (window.location.href = "/admin/settings")}
-                  className="w-full justify-start"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Volver a configuraciones
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => (window.location.href = "/")}>
+              <Users className="h-4 w-4 mr-2" />
+              Vista invitados
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => (window.location.href = "/admin/settings/debug")}>
+              <Settings className="h-4 w-4 mr-2" />
+              Configuraciones
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+              {exporting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Exportar Excel
+            </Button>
+            <Button onClick={openAddDialog} className="bg-pink-500 hover:bg-pink-600">
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar regalo
+            </Button>
           </div>
         </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-gray-800">{gifts.length}</p>
+              <p className="text-sm text-gray-500 mt-1">Total regalos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-green-600">{available}</p>
+              <p className="text-sm text-gray-500 mt-1">Disponibles</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-pink-500">{reserved}</p>
+              <p className="text-sm text-gray-500 mt-1">Reservados</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gift list */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <GiftIcon className="h-5 w-5 text-pink-500" />
+              Lista de Regalos
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={fetchGifts} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-12 text-gray-400">
+                <RefreshCw className="h-8 w-8 mx-auto mb-3 animate-spin" />
+                <p>Cargando regalos...</p>
+              </div>
+            ) : gifts.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <GiftIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-lg mb-4">No hay regalos todavía</p>
+                <Button onClick={openAddDialog} className="bg-pink-500 hover:bg-pink-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar el primer regalo
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {gifts.map((gift) => (
+                  <div
+                    key={gift.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {gift.image_url && (
+                        <img
+                          src={gift.image_url}
+                          alt={gift.name}
+                          className="h-10 w-10 rounded object-cover flex-shrink-0"
+                          onError={(e) => { e.currentTarget.style.display = "none" }}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-800 truncate">{gift.name}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {gift.price && (
+                            <span className="text-sm text-green-600">${gift.price.toLocaleString()}</span>
+                          )}
+                          {gift.description && (
+                            <span className="text-xs text-gray-400 truncate max-w-xs">{gift.description}</span>
+                          )}
+                        </div>
+                        {gift.reserved && (
+                          <p className="text-xs text-pink-500 mt-0.5">Reservado por: {gift.reserved_by}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                      <Badge
+                        variant="outline"
+                        className={gift.reserved ? "bg-pink-50 text-pink-600" : "bg-green-50 text-green-600"}
+                      >
+                        {gift.reserved ? "Reservado" : "Disponible"}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(gift)}
+                        className="text-gray-500 hover:text-blue-600"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDeleteDialog(gift)}
+                        className="text-gray-500 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingGift ? "Editar Regalo" : "Agregar Regalo"}</DialogTitle>
+            <DialogDescription>
+              {editingGift ? "Modificá los datos del regalo" : "Completá los datos del nuevo regalo"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="name">Nombre *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: Cochecito de paseo"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Descripción</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Descripción opcional"
+                rows={2}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="price">Precio</Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData((f) => ({ ...f, price: e.target.value }))}
+                placeholder="Ej: 15000"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="external_link">Link del producto</Label>
+              <Input
+                id="external_link"
+                type="url"
+                value={formData.external_link}
+                onChange={(e) => setFormData((f) => ({ ...f, external_link: e.target.value }))}
+                placeholder="https://..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="image_url">URL de imagen</Label>
+              <Input
+                id="image_url"
+                type="url"
+                value={formData.image_url}
+                onChange={(e) => setFormData((f) => ({ ...f, image_url: e.target.value }))}
+                placeholder="https://..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-pink-500 hover:bg-pink-600">
+              {saving ? (
+                <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Guardando...</>
+              ) : (
+                editingGift ? "Guardar cambios" : "Agregar regalo"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar regalo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar <strong>{deletingGift?.name}</strong>. Esta acción no se puede deshacer.
+              {deletingGift?.reserved && (
+                <span className="block mt-2 text-amber-600 font-medium">
+                  Este regalo tiene una reserva activa de {deletingGift.reserved_by}.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
 
-export default function SettingsDebugPage() {
+export default function AdminPage() {
   return (
     <AuthGuard>
-      <SettingsDebugContent />
+      <AdminContent />
     </AuthGuard>
   )
 }

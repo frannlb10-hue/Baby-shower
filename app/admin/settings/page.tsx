@@ -120,7 +120,7 @@ function SettingsDebugContent() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">
-            <Button variant="outline" size="sm" onClick={() => window.history.back()} className="mr-4">
+            <Button variant="outline" size="sm" onClick={() => (window.location.href = "/admin")} className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
