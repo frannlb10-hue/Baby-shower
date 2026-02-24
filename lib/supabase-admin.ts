@@ -7,20 +7,23 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
-if (!serviceRoleKey) {
+if (!supabaseUrl || !serviceRoleKey) {
   console.warn(
-    "[Supabase Admin] SUPABASE_SERVICE_ROLE_KEY no configurada. " +
-    "Las operaciones de admin fallarán."
+    "[Supabase Admin] NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no configuradas. " +
+    "Las operaciones de admin no estarán disponibles."
   )
 }
 
 // Cliente admin con service_role key (bypasea RLS)
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+// Solo se crea si las variables de entorno están disponibles
+export const supabaseAdmin = supabaseUrl && serviceRoleKey
+  ? createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null
 
 /**
  * Verifica si el cliente admin está configurado correctamente

@@ -9,9 +9,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
 // Cliente público con anon key (respeta RLS)
-export const supabasePublic = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: { persistSession: false },
-})
+// Solo se crea si las variables de entorno están disponibles
+export const supabasePublic = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    })
+  : null
 
 // ============================================
 // CLIENTE ADMIN (service_role key) - Escritura
@@ -20,7 +23,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
 // Cliente admin con service_role key (bypasea RLS)
 // IMPORTANTE: Solo usar en el servidor, nunca exponer al cliente
-const supabaseAdmin = serviceRoleKey
+const supabaseAdmin = supabaseUrl && serviceRoleKey
   ? createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
@@ -38,7 +41,7 @@ let tableExists = true
  */
 export async function getAllGifts(): Promise<Gift[]> {
   try {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabasePublic) {
       console.log("Variables de entorno no configuradas, usando datos de fallback")
       return FALLBACK_GIFTS
     }
@@ -69,7 +72,7 @@ export async function getAllGifts(): Promise<Gift[]> {
  */
 export async function getGiftById(id: string): Promise<Gift | null> {
   try {
-    if (!tableExists) {
+    if (!supabasePublic || !tableExists) {
       return FALLBACK_GIFTS.find((gift) => gift.id === id) || null
     }
 
@@ -95,6 +98,10 @@ export async function getGiftById(id: string): Promise<Gift | null> {
  * Reserva un regalo (público - solo actualiza campos de reserva)
  */
 export async function reserveGift(id: string, guestName: string): Promise<Gift> {
+  if (!supabasePublic) {
+    throw new Error("Supabase no está configurado")
+  }
+
   try {
     // Primero verificamos si el regalo ya está reservado
     const { data: gift, error: fetchError } = await supabasePublic
