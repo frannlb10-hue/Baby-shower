@@ -3,8 +3,9 @@ import { requireAuth } from "@/lib/auth"
 import { createClient } from "@supabase/supabase-js"
 import { deleteGift } from "@/lib/supabase"
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  console.log("[PUT /api/gifts/:id] called, id:", params.id)
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  console.log("[PUT /api/gifts/:id] called, id:", id)
 
   const authError = requireAuth(request)
   if (authError) {
@@ -62,7 +63,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const { data, error } = await supabase
     .from("gifts")
     .update(updatePayload)
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
 
   console.log("Supabase response data:", JSON.stringify(data))
@@ -76,16 +77,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   if (!data || data.length === 0) {
-    console.warn("[PUT /api/gifts/:id] no rows updated — id not found:", params.id)
-    return NextResponse.json({ error: "Regalo no encontrado", message: `No existe un regalo con id: ${params.id}` }, { status: 404 })
+    console.warn("[PUT /api/gifts/:id] no rows updated — id not found:", id)
+    return NextResponse.json({ error: "Regalo no encontrado", message: `No existe un regalo con id: ${id}` }, { status: 404 })
   }
 
   console.log("[PUT /api/gifts/:id] success, updated:", data[0].name)
   return NextResponse.json(data[0])
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  console.log("[DELETE /api/gifts/:id] called, id:", params.id)
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  console.log("[DELETE /api/gifts/:id] called, id:", id)
 
   const authError = requireAuth(request)
   if (authError) {
@@ -102,8 +104,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 
   try {
-    await deleteGift(params.id)
-    console.log("[DELETE /api/gifts/:id] deleted id:", params.id)
+    await deleteGift(id)
+    console.log("[DELETE /api/gifts/:id] deleted id:", id)
     return NextResponse.json({ success: true, message: "Regalo eliminado correctamente" })
   } catch (error) {
     console.error("[DELETE /api/gifts/:id] error:", error)
