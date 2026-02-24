@@ -204,12 +204,12 @@ function AdminContent() {
   const reserved = gifts.filter((g) => g.reserved).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <Baby className="h-8 w-8 text-pink-500" />
+            <Baby className="h-8 w-8 text-green-600" />
             <div>
               <h1 className="text-2xl font-bold text-gray-800">Panel de Administración</h1>
               <p className="text-sm text-gray-500">Gestión de lista de regalos</p>
@@ -228,7 +228,7 @@ function AdminContent() {
               {exporting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
               Exportar Excel
             </Button>
-            <Button onClick={openAddDialog} className="bg-pink-500 hover:bg-pink-600">
+            <Button onClick={openAddDialog} className="bg-green-600 hover:bg-green-700">
               <Plus className="h-4 w-4 mr-2" />
               Agregar regalo
             </Button>
@@ -251,7 +251,7 @@ function AdminContent() {
           </Card>
           <Card>
             <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-pink-500">{reserved}</p>
+              <p className="text-3xl font-bold text-green-600">{reserved}</p>
               <p className="text-sm text-gray-500 mt-1">Reservados</p>
             </CardContent>
           </Card>
@@ -261,7 +261,7 @@ function AdminContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <GiftIcon className="h-5 w-5 text-pink-500" />
+              <GiftIcon className="h-5 w-5 text-green-600" />
               Lista de Regalos
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={fetchGifts} disabled={loading}>
@@ -278,7 +278,7 @@ function AdminContent() {
               <div className="text-center py-12 text-gray-400">
                 <GiftIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg mb-4">No hay regalos todavía</p>
-                <Button onClick={openAddDialog} className="bg-pink-500 hover:bg-pink-600">
+                <Button onClick={openAddDialog} className="bg-green-600 hover:bg-green-700">
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar el primer regalo
                 </Button>
@@ -310,14 +310,14 @@ function AdminContent() {
                           )}
                         </div>
                         {gift.reserved && (
-                          <p className="text-xs text-pink-500 mt-0.5">Reservado por: {gift.reserved_by}</p>
+                          <p className="text-xs text-green-600 mt-0.5">Reservado por: {gift.reserved_by}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                       <Badge
                         variant="outline"
-                        className={gift.reserved ? "bg-pink-50 text-pink-600" : "bg-green-50 text-green-600"}
+                        className={gift.reserved ? "bg-green-50 text-green-700" : "bg-green-50 text-green-600"}
                       >
                         {gift.reserved ? "Reservado" : "Disponible"}
                       </Badge>
@@ -415,7 +415,7 @@ function AdminContent() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-pink-500 hover:bg-pink-600">
+            <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700">
               {saving ? (
                 <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Guardando...</>
               ) : (
