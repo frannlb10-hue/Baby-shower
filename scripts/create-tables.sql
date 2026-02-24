@@ -1,0 +1,22 @@
+-- Crear la tabla de regalos
+CREATE TABLE IF NOT EXISTS gifts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  description TEXT,
+  price DECIMAL(10, 2),
+  externalLink TEXT,
+  reserved BOOLEAN DEFAULT FALSE,
+  reservedBy TEXT,
+  reservedAt TIMESTAMP WITH TIME ZONE,
+  createdAt TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updatedAt TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insertar algunos datos de ejemplo
+INSERT INTO gifts (name, description, price, externalLink, reserved, createdAt, updatedAt)
+VALUES 
+  ('Cuna de madera', 'Cuna convertible de madera natural con colchón incluido', 25000, 'https://example.com/cuna', false, NOW(), NOW()),
+  ('Cochecito de bebé', 'Cochecito 3 en 1 con silla para auto', 45000, null, false, NOW(), NOW()),
+  ('Ropa de bebé (0-6 meses)', 'Set de bodys, pijamas y conjuntos para recién nacido', 8000, null, false, NOW(), NOW()),
+  ('Monitor de bebé', 'Monitor con video y audio para vigilar al bebé', 15000, null, false, NOW(), NOW()),
+  ('Bañera para bebé', 'Bañera ergonómica con soporte antideslizante', 5000, null, false, NOW(), NOW());

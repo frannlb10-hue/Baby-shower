@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"c0b8869f0a24ebd932a8b4fdac87ab8aa3267052eda1ef2dd46afc978b5e2638\")",
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git add:*)",
+      "Bash(npm show:*)",
+      "Bash(cd /c/Users/dell/Desktop/Baby-shower-main && npm run build 2>&1)",
+      "Bash(cd:*)"
+    ]
+  }
+}
