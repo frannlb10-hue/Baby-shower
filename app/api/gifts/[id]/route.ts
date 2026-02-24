@@ -32,15 +32,24 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     )
   }
 
+  const payload = {
+    name: String(name).trim(),
+    description: description ? String(description).trim() || null : null,
+    price: price ? parseFloat(String(price)) : null,
+    external_link: external_link ? String(external_link).trim() || null : null,
+    image_url: image_url ? String(image_url).trim() || null : null,
+  }
+
+  console.log("[PUT /api/gifts/:id] --- PRE-PATCH ---")
+  console.log("[PUT /api/gifts/:id] gift id:", params.id)
+  console.log("[PUT /api/gifts/:id] payload:", JSON.stringify(payload))
+  console.log("[PUT /api/gifts/:id] client: supabaseAdmin (SUPABASE_SERVICE_ROLE_KEY)")
+  console.log("[PUT /api/gifts/:id] SERVICE_ROLE_KEY present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+  console.log("[PUT /api/gifts/:id] SUPABASE_URL present:", !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+
   try {
     // updateGift usa supabaseAdmin (service_role) — no depende de RLS ni anon key
-    const updated = await updateGift(params.id, {
-      name: String(name).trim(),
-      description: description ? String(description).trim() || null : null,
-      price: price ? parseFloat(String(price)) : null,
-      external_link: external_link ? String(external_link).trim() || null : null,
-      image_url: image_url ? String(image_url).trim() || null : null,
-    })
+    const updated = await updateGift(params.id, payload)
 
     console.log("[PUT /api/gifts/:id] Updated successfully:", updated.name)
     return NextResponse.json(updated)

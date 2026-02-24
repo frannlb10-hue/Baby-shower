@@ -226,6 +226,10 @@ export async function updateGift(id: string, updates: Partial<Gift>): Promise<Gi
   if (updates.external_link !== undefined) updatedData.external_link = updates.external_link
   if (updates.image_url !== undefined) updatedData.image_url = updates.image_url
 
+  console.log("[updateGift] PATCH gifts id:", id)
+  console.log("[updateGift] data to PATCH:", JSON.stringify(updatedData))
+  console.log("[updateGift] using client: supabaseAdmin (service_role)")
+
   const { data, error } = await admin
     .from("gifts")
     .update(updatedData)
@@ -233,11 +237,19 @@ export async function updateGift(id: string, updates: Partial<Gift>): Promise<Gi
     .select()
 
   if (error) {
-    console.error("Error updating gift:", error)
+    console.error("[updateGift] Supabase error — full details:")
+    console.error("  message:", error.message)
+    console.error("  code:", (error as any).code)
+    console.error("  details:", (error as any).details)
+    console.error("  hint:", (error as any).hint)
+    console.error("  full object:", JSON.stringify(error))
     throw new Error(`Error al actualizar el regalo: ${error.message}`)
   }
 
+  console.log("[updateGift] PATCH result rows:", data?.length ?? 0)
+
   if (!data || data.length === 0) {
+    console.warn("[updateGift] No rows returned — ID may not exist:", id)
     throw new Error("No se pudo actualizar el regalo")
   }
 
