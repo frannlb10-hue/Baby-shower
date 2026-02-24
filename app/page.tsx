@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ExternalLink, Baby, Gift as GiftIcon, Heart, Check } from "lucide-react"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { useToast } from "@/hooks/use-toast"
 
 export default function GuestPage() {
@@ -154,16 +155,12 @@ export default function GuestPage() {
                   onClick={() => setSelectedGift(gift)}
                 >
                   {gift.image_url && (
-                    <div className="h-48 overflow-hidden">
-                      <img
-                        src={gift.image_url}
-                        alt={gift.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                        }}
-                      />
-                    </div>
+                    <ImageLightbox
+                      src={gift.image_url}
+                      alt={gift.name}
+                      className="h-48 overflow-hidden"
+                      imgClassName="w-full h-full object-cover"
+                    />
                   )}
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -226,16 +223,12 @@ export default function GuestPage() {
               {reservedGifts.map((gift) => (
                 <Card key={gift.id} className="relative overflow-hidden opacity-75">
                   {gift.image_url && (
-                    <div className="h-48 overflow-hidden grayscale">
-                      <img
-                        src={gift.image_url}
-                        alt={gift.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                        }}
-                      />
-                    </div>
+                    <ImageLightbox
+                      src={gift.image_url}
+                      alt={gift.name}
+                      className="h-48 overflow-hidden grayscale"
+                      imgClassName="w-full h-full object-cover"
+                    />
                   )}
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">

@@ -39,6 +39,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Gift } from "@/types/gift"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 
 function AdminContent() {
   const [gifts, setGifts] = useState<Gift[]>([])
@@ -292,11 +293,11 @@ function AdminContent() {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {gift.image_url && (
-                        <img
+                        <ImageLightbox
                           src={gift.image_url}
                           alt={gift.name}
-                          className="h-10 w-10 rounded object-cover flex-shrink-0"
-                          onError={(e) => { e.currentTarget.style.display = "none" }}
+                          className="h-10 w-10 rounded overflow-hidden flex-shrink-0"
+                          imgClassName="h-full w-full object-cover"
                         />
                       )}
                       <div className="min-w-0">
