@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
-import { getGiftById, updateGift, deleteGift } from "@/lib/supabase"
+import { updateGift, deleteGift } from "@/lib/supabase"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   console.log("[PUT /api/gifts/:id] called for id:", params.id)
@@ -24,37 +24,31 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "El nombre del regalo es requerido" }, { status: 400 })
   }
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[PUT /api/gifts/:id] SUPABASE_SERVICE_ROLE_KEY no configurada")
     return NextResponse.json(
-      { error: "Configuración incompleta", message: "SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor" },
+      { error: "Configuración incompleta", message: "SUPABASE_SERVICE_ROLE_KEY no configurada" },
       { status: 500 }
     )
   }
 
   try {
-    const existing = await getGiftById(params.id)
-    if (!existing) {
-      return NextResponse.json({ error: "Regalo no encontrado" }, { status: 404 })
-    }
-
+    // updateGift usa supabaseAdmin (service_role) — no depende de RLS ni anon key
     const updated = await updateGift(params.id, {
       name: String(name).trim(),
       description: description ? String(description).trim() || null : null,
       price: price ? parseFloat(String(price)) : null,
       external_link: external_link ? String(external_link).trim() || null : null,
-      image_url: image_url ? String(image_url).trim() || existing.image_url : existing.image_url,
+      image_url: image_url ? String(image_url).trim() || null : null,
     })
 
     console.log("[PUT /api/gifts/:id] Updated successfully:", updated.name)
     return NextResponse.json(updated)
   } catch (error) {
     console.error("[PUT /api/gifts/:id] Supabase error:", error)
-    return NextResponse.json(
-      { error: "Error de base de datos", message: error instanceof Error ? error.message : "Error desconocido" },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : "Error desconocido"
+    const status = message.includes("No se pudo actualizar") ? 404 : 500
+    return NextResponse.json({ error: "Error al actualizar", message }, { status })
   }
 }
 
@@ -67,28 +61,23 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return authError
   }
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[DELETE /api/gifts/:id] SUPABASE_SERVICE_ROLE_KEY no configurada")
     return NextResponse.json(
-      { error: "Configuración incompleta", message: "SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor" },
+      { error: "Configuración incompleta", message: "SUPABASE_SERVICE_ROLE_KEY no configurada" },
       { status: 500 }
     )
   }
 
   try {
-    const existing = await getGiftById(params.id)
-    if (!existing) {
-      return NextResponse.json({ error: "Regalo no encontrado" }, { status: 404 })
-    }
-
+    // deleteGift usa supabaseAdmin (service_role) — no depende de RLS ni anon key
     await deleteGift(params.id)
-    console.log("[DELETE /api/gifts/:id] Deleted:", existing.name)
+    console.log("[DELETE /api/gifts/:id] Deleted id:", params.id)
     return NextResponse.json({ success: true, message: "Regalo eliminado correctamente" })
   } catch (error) {
     console.error("[DELETE /api/gifts/:id] Supabase error:", error)
     return NextResponse.json(
-      { error: "Error de base de datos", message: error instanceof Error ? error.message : "Error desconocido" },
+      { error: "Error al eliminar", message: error instanceof Error ? error.message : "Error desconocido" },
       { status: 500 }
     )
   }
