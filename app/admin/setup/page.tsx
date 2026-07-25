@@ -54,7 +54,7 @@ function SetupContent() {
                 y crea una cuenta o inicia sesión
               </li>
               <li>Haz clic en "New Project" y sigue los pasos para crear un nuevo proyecto</li>
-              <li>Elige un nombre para tu proyecto, por ejemplo "baby-shower-gifts"</li>
+              <li>Elige un nombre para tu proyecto, por ejemplo "primer-anito-emi-gifts"</li>
               <li>Establece una contraseña segura para la base de datos</li>
               <li>Selecciona la región más cercana a ti</li>
               <li>Haz clic en "Create new project"</li>

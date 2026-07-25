@@ -11,8 +11,8 @@ const nunito = Nunito({
 })
 
 export const metadata: Metadata = {
-  title: "Baby Shower - Lista de Regalos",
-  description: "Aplicación para gestionar la lista de regalos del Baby Shower",
+  title: "Primer Añito de Emi - Lista de Regalos",
+  description: "Aplicación para gestionar la lista de regalos del Primer Añito de Emi",
   generator: "v0.dev",
 }
 

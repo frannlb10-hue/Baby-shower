@@ -112,9 +112,9 @@ export default function GuestPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50 flex items-center justify-center">
         <div className="text-center">
-          <Baby className="h-12 w-12 mx-auto mb-4 text-green-600 animate-bounce" />
+          <Baby className="h-12 w-12 mx-auto mb-4 text-pink-600 animate-bounce" />
           <p className="text-lg text-gray-600">Cargando lista de regalos...</p>
         </div>
       </div>
@@ -122,14 +122,14 @@ export default function GuestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-4">
-            <Baby className="h-16 w-16 text-green-600" />
+            <Baby className="h-16 w-16 text-pink-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Baby Shower</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Primer Añito de Emi</h1>
           <p className="text-lg text-gray-600 mb-4">Lista de Regalos</p>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
             <GiftIcon className="h-4 w-4" />
@@ -144,14 +144,14 @@ export default function GuestPage() {
         {availableGifts.length > 0 && (
           <div className="mb-12">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-              <GiftIcon className="h-6 w-6 mr-2 text-green-600" />
+              <GiftIcon className="h-6 w-6 mr-2 text-pink-600" />
               Regalos Disponibles
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {availableGifts.map((gift) => (
                 <Card
                   key={gift.id}
-                  className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-green-200"
+                  className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-pink-200"
                   onClick={() => setSelectedGift(gift)}
                 >
                   {gift.image_url && (
@@ -167,7 +167,7 @@ export default function GuestPage() {
                       <CardTitle className="text-lg font-semibold text-gray-800 flex-1">
                         {gift.name}
                       </CardTitle>
-                      <Badge className="bg-green-100 text-green-700">Disponible</Badge>
+                      <Badge className="bg-pink-100 text-pink-700">Disponible</Badge>
                     </div>
                     {gift.description && (
                       <CardDescription className="text-gray-600">{gift.description}</CardDescription>
@@ -176,7 +176,7 @@ export default function GuestPage() {
                   <CardContent className="pt-0">
                     <div className="space-y-3">
                       {gift.price && (
-                        <p className="text-lg font-semibold text-green-600">
+                        <p className="text-lg font-semibold text-pink-600">
                           ${gift.price.toLocaleString()}
                         </p>
                       )}
@@ -195,7 +195,7 @@ export default function GuestPage() {
                       )}
 
                       <Button
-                        className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full bg-pink-600 hover:bg-pink-700"
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedGift(gift)
@@ -287,7 +287,7 @@ export default function GuestPage() {
                 />
               </div>
               <p className="text-sm text-gray-500">
-                Al reservar este regalo, te comprometes a traerlo al Baby Shower.
+                Al reservar este regalo, te comprometes a traerlo al Primer Añito de Emi.
               </p>
             </div>
             <DialogFooter>
@@ -305,7 +305,7 @@ export default function GuestPage() {
               <Button
                 onClick={handleReserve}
                 disabled={reserving || !guestName.trim()}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-pink-600 hover:bg-pink-700"
               >
                 {reserving ? "Reservando..." : "Confirmar Reserva"}
               </Button>

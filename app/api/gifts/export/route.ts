@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     })
 
     // Crear nombre de archivo con fecha
-    const fileName = `lista-regalos-baby-shower-${new Date().toISOString().split("T")[0]}.xlsx`
+    const fileName = `lista-regalos-primer-anito-emi-${new Date().toISOString().split("T")[0]}.xlsx`
 
     console.log("Export successful, returning Excel with", gifts.length, "gifts")
 

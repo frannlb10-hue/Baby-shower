@@ -23,7 +23,7 @@ export async function getAppSettings(): Promise<AppSettings | null> {
     // Convertir los datos de la base de datos al formato de AppSettings
     return {
       title: data.title || "Lista de Regalos",
-      subtitle: data.subtitle || "¡Bienvenido al Baby Shower! Elige un regalo para reservar",
+      subtitle: data.subtitle || "¡Bienvenido al Primer Añito de Emi! Elige un regalo para reservar",
       welcomeMessage: data.welcome_message || "Gracias por acompañarnos en este momento especial",
       primaryColor: data.primary_color || "#3b82f6",
       backgroundColor: data.background_color || "#f8fafc",

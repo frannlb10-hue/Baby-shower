@@ -108,7 +108,7 @@ function StatusContent() {
         <div className="text-center mb-8">
           <Database className="h-12 w-12 mx-auto mb-4 text-blue-500" />
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Estado del Sistema</h1>
-          <p className="text-gray-600">Diagnóstico completo de la aplicación Baby Shower</p>
+          <p className="text-gray-600">Diagnóstico completo de la aplicación Primer Añito de Emi</p>
         </div>
 
         <div className="flex justify-center mb-8">
