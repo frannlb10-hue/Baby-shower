@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Shield, Eye, EyeOff, Mail, ArrowLeft } from "lucide-react"
+import { Shield, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AuthGuardProps {
@@ -21,9 +21,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
-  const [showResetForm, setShowResetForm] = useState(false)
-  const [resetEmail, setResetEmail] = useState("")
-  const [resetLoading, setResetLoading] = useState(false)
   const [loginError, setLoginError] = useState("")
   const { toast } = useToast()
 
@@ -80,56 +77,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setResetLoading(true)
-
-    try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: resetEmail }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        toast({
-          title: "Email enviado",
-          description: data.message,
-        })
-
-        // Si estamos en desarrollo, mostrar las credenciales
-        if (data.devInfo) {
-          toast({
-            title: "Credenciales de desarrollo",
-            description: `Usuario: ${data.devInfo.username}, Contraseña: ${data.devInfo.password}`,
-            duration: 10000,
-          })
-        }
-
-        setShowResetForm(false)
-        setResetEmail("")
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "No se pudo procesar la solicitud",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor",
-        variant: "destructive",
-      })
-    } finally {
-      setResetLoading(false)
-    }
-  }
-
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
@@ -159,54 +106,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   if (!isAuthenticated) {
-    if (showResetForm) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <Mail className="h-12 w-12 mx-auto mb-4 text-blue-500" />
-              <CardTitle>Recuperar Contraseña</CardTitle>
-              <CardDescription>Ingresa tu email para recibir las instrucciones de recuperación</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordReset} className="space-y-4">
-                <div>
-                  <Label htmlFor="resetEmail">Email</Label>
-                  <Input
-                    id="resetEmail"
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="jagcoccolo@gmail.com"
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowResetForm(false)
-                      setResetEmail("")
-                    }}
-                    className="flex-1"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Volver
-                  </Button>
-                  <Button type="submit" disabled={resetLoading} className="flex-1">
-                    {resetLoading ? "Enviando..." : "Enviar"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )
-    }
-
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -262,17 +161,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
               <Button type="submit" className="w-full" disabled={loginLoading}>
                 {loginLoading ? "Verificando..." : "Iniciar Sesión"}
               </Button>
-
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={() => setShowResetForm(true)}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Button>
-              </div>
             </form>
           </CardContent>
         </Card>

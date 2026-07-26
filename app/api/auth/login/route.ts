@@ -1,31 +1,29 @@
 import { NextResponse } from "next/server"
 import { verifyPassword, generateSessionToken } from "@/lib/auth"
 import { createSession } from "@/lib/session-store"
+import { resolveAdminCredentials } from "@/lib/admin-credentials"
 
 export async function POST(request: Request) {
   try {
     const { username, password } = await request.json()
 
-    // Obtener credenciales de las variables de entorno
-    const adminUsername = process.env.ADMIN_USERNAME || "admin"
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH || ""
-    const adminSalt = process.env.ADMIN_SALT || ""
+    const adminCredentials = await resolveAdminCredentials()
 
     console.log("Login attempt:", { username, hasPassword: !!password })
 
+    if (!adminCredentials) {
+      console.log("Missing admin credentials (neither admin_credentials table nor env vars)")
+      return NextResponse.json({ error: "Configuración de autenticación incompleta" }, { status: 500 })
+    }
+
     // Verificar credenciales
-    if (username !== adminUsername) {
+    if (username !== adminCredentials.username) {
       // Simular tiempo de procesamiento para evitar timing attacks
       await new Promise((resolve) => setTimeout(resolve, 1000))
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 
-    if (!adminPasswordHash || !adminSalt) {
-      console.log("Missing environment variables")
-      return NextResponse.json({ error: "Configuración de autenticación incompleta" }, { status: 500 })
-    }
-
-    const isValidPassword = verifyPassword(password, adminPasswordHash, adminSalt)
+    const isValidPassword = verifyPassword(password, adminCredentials.passwordHash, adminCredentials.salt)
 
     if (!isValidPassword) {
       // Simular tiempo de procesamiento para evitar timing attacks

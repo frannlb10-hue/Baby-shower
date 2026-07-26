@@ -1,10 +1,13 @@
 "use client"
 
+import type React from "react"
 import { AuthGuard } from "@/components/auth-guard"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -18,9 +21,132 @@ import {
   Bug,
   FileJson,
   HardDrive,
+  KeyRound,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSettings, invalidateSettingsCache } from "@/lib/settings"
+
+function ChangePasswordCard() {
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [saving, setSaving] = useState(false)
+  const { toast } = useToast()
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Error", description: "Las contraseñas nuevas no coinciden", variant: "destructive" })
+      return
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "La nueva contraseña debe tener al menos 8 caracteres",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setSaving(true)
+      const token = localStorage.getItem("adminToken")
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token || ""}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo cambiar la contraseña")
+      }
+
+      toast({ title: "Contraseña actualizada", description: "Usá la nueva contraseña la próxima vez que inicies sesión" })
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo cambiar la contraseña",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <KeyRound className="h-5 w-5 mr-2" />
+          Cambiar Contraseña
+        </CardTitle>
+        <CardDescription>Cambiá la contraseña de acceso al panel de administración</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div>
+            <Label htmlFor="currentPassword">Contraseña actual</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="newPassword">Nueva contraseña</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              minLength={8}
+              required
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="confirmPassword">Confirmar nueva contraseña</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              minLength={8}
+              required
+              className="mt-1"
+            />
+          </div>
+          <Button type="submit" disabled={saving} className="w-full">
+            {saving ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              "Cambiar contraseña"
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
 
 function SettingsDebugContent() {
   const { settings: loadedSettings } = useSettings()
@@ -329,6 +455,8 @@ function SettingsDebugContent() {
                 </CardContent>
               </Card>
             )}
+
+            <ChangePasswordCard />
 
             <Card>
               <CardHeader>

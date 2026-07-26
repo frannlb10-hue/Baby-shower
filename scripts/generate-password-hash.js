@@ -1,13 +1,10 @@
 const crypto = require("crypto")
 
-// Función para generar hash de contraseña
+// Función para generar hash de contraseña (scrypt, memory-hard)
 function generatePasswordHash(password) {
-  const salt = crypto.randomBytes(32).toString("hex")
-  const hash = crypto
-    .createHash("sha256")
-    .update(password + salt)
-    .digest("hex")
-  return { hash, salt }
+  const salt = crypto.randomBytes(16).toString("hex")
+  const derivedKey = crypto.scryptSync(password, salt, 64)
+  return { hash: `scrypt$${derivedKey.toString("hex")}`, salt }
 }
 
 // Ejemplo de uso - cambia 'tu_contraseña_segura' por tu contraseña real

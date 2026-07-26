@@ -2,26 +2,30 @@ import crypto from "crypto"
 import { NextResponse } from "next/server"
 import { validateSession } from "./session-store"
 
-export function generatePasswordHash(password: string): { hash: string; salt: string } {
-  const salt = crypto.randomBytes(32).toString("hex")
-  const hash = crypto
-    .createHash("sha256")
-    .update(password + salt)
-    .digest("hex")
-  return { hash, salt }
-}
+const SCRYPT_PREFIX = "scrypt$"
+const SCRYPT_KEYLEN = 64
 
-export function hashPassword(password: string, salt: string): { hash: string; salt: string } {
-  const hash = crypto
-    .createHash("sha256")
-    .update(password + salt)
-    .digest("hex")
-  return { hash, salt }
+// Genera hash+salt para una contraseña nueva, siempre con scrypt (memory-hard).
+export function generatePasswordHash(password: string): { hash: string; salt: string } {
+  const salt = crypto.randomBytes(16).toString("hex")
+  const derivedKey = crypto.scryptSync(password, salt, SCRYPT_KEYLEN)
+  return { hash: `${SCRYPT_PREFIX}${derivedKey.toString("hex")}`, salt }
 }
 
 export function verifyPassword(password: string, hash: string, salt: string): boolean {
-  const { hash: computedHash } = hashPassword(password, salt)
-  return computedHash === hash
+  if (hash.startsWith(SCRYPT_PREFIX)) {
+    const stored = Buffer.from(hash.slice(SCRYPT_PREFIX.length), "hex")
+    const derived = crypto.scryptSync(password, salt, SCRYPT_KEYLEN)
+    if (stored.length !== derived.length) return false
+    return crypto.timingSafeEqual(stored, derived)
+  }
+
+  // Formato legado (sha256 simple) — sigue soportado en login hasta que se use "cambiar contraseña".
+  const legacyHash = crypto.createHash("sha256").update(password + salt).digest("hex")
+  const storedBuf = Buffer.from(hash, "hex")
+  const legacyBuf = Buffer.from(legacyHash, "hex")
+  if (storedBuf.length !== legacyBuf.length) return false
+  return crypto.timingSafeEqual(storedBuf, legacyBuf)
 }
 
 export function generateSessionToken(): string {
