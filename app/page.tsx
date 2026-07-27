@@ -243,13 +243,6 @@ export default function GuestPage() {
                       <CardDescription className="text-gray-500">{gift.description}</CardDescription>
                     )}
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="bg-gray-50 p-2 rounded text-sm">
-                      <p className="text-gray-600">
-                        <strong>Reservado por:</strong> {gift.reserved_by}
-                      </p>
-                    </div>
-                  </CardContent>
                 </Card>
               ))}
             </div>

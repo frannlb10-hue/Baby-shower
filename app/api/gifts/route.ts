@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth"
+import { requireAuth, isAuthenticated } from "@/lib/auth"
 import { getAllGifts, createGift } from "@/lib/supabase"
 
-export async function GET() {
+export async function GET(request: Request) {
   console.log("[GET /api/gifts] called")
   try {
     const gifts = await getAllGifts()
     console.log(`[GET /api/gifts] returning ${gifts.length} gifts`)
+
+    // Los invitados no deben ver quién reservó cada regalo, solo el admin autenticado.
+    if (!isAuthenticated(request)) {
+      const publicGifts = gifts.map((gift) => ({ ...gift, reserved_by: null }))
+      return NextResponse.json(publicGifts)
+    }
+
     return NextResponse.json(gifts)
   } catch (error) {
     console.error("[GET /api/gifts] error:", error)

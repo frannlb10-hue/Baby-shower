@@ -74,7 +74,9 @@ function AdminContent() {
   const fetchGifts = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/gifts")
+      const response = await fetch("/api/gifts", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
       if (Array.isArray(data)) setGifts(data)
